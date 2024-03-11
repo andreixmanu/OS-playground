@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.22)
+project(OS_playground C)
+
+set(CMAKE_C_STANDARD 11)
+
+add_executable(forks forks.c)
+add_executable(pipe pipes.c)
+add_executable(wait wait.c)
+add_executable(array_sum array_sum.c)
