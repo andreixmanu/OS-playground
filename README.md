@@ -52,7 +52,7 @@ ___
 *Necessary Libraries*
 
 ```cpp
-#include <sys/wait.h>
+#include <wait.h>
 ```
 
 *Description*

@@ -19,10 +19,7 @@ int main(int argc, char* argv[])
         n = 6;
     }
 
-   if(pid != 0)
-   {
-       wait(NULL);
-   }
+   if(pid != 0) wait(NULL);
 
     for (int i = n; i < n + 5; i++) {
         printf("%d ", i);
