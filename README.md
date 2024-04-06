@@ -2,7 +2,7 @@
 
 # C
 
-## Fork()
+## fork()
 
 *Necessary Libraries*
 
@@ -246,3 +246,59 @@ int main(int argc, char* argv[])
 > - 'read_pipe' reads the array from 'my_pipe'
 > 
 > To execute the exercise, first execute write_pipe, then read_pipe.
+
+---
+
+## execlp()
+
+*Necessary libraries*
+
+```cpp
+#include <unistd.h>
+```
+
+*Description*
+> Executes a terminal command. If the function ends correctly, the program replaces its execution
+> with the terminal command. There are many 'exec' variations, this option takes a (l)ist of arguments,
+> and uses the (p)ath variables to run the commands. The function parameters must end with a NULL.
+> It returns -1 if the execution of the command was not successful, otherwise the command is run and the 
+> process is replaced. 
+
+*Usage*
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <wait.h>
+
+int main(int argc, char* argv[])
+{
+    int pid = fork();
+    if(pid == -1) exit(1);
+
+    if(pid == 0)
+    { // child process
+         /* the function substitutes the whole program with this command
+         * any code in the same scope after the function will not be executed
+         * the function returns -1 if the command could not be found, and
+         * keeps running the code underneath
+         */
+        int error = execlp("ping", "ping", "-c", "3", "google.con", NULL);
+        if(error == -1) printf("Could not execute command\n");
+        return 1;
+    } else
+    { // parent process
+        int wstatus;
+        wait(&wstatus);
+        if(WIFEXITED(wstatus))
+        {
+            int status_code = WEXITSTATUS(wstatus);
+            if(status_code == 0) printf("Code executed successfully\n");
+            else printf("Code failed: error %d\n", status_code);
+        }
+    }
+    return 0;
+}
+```
+---
