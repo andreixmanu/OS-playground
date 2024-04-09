@@ -302,3 +302,202 @@ int main(int argc, char* argv[])
 }
 ```
 ---
+
+# Threads
+
+*Description* 
+> A thread is the simplest execution process that can perform a single function.
+> Every thread created shares the same memory, while multiple processes have their 
+> own memory. Because of that, more than one thread can access the same variable 
+> at the same time, causing a so called 'race condition' that must be managed by
+> the operating system.
+
+## pthread_create(), pthread_join()
+
+*Necessary libraries*
+```cpp
+#include <pthread.h>
+```
+
+*Description*
+>   1) Creates a thread that executes the given function with parameters.
+>   The function returns 0 if the creation has been successful. 
+>   2) Waits for the thread to finish its execution, and can collect its 
+>   return value.
+
+*Usage*
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/syscall.h>  
+
+void* example_code(void* a) {
+    pthread_t tid;
+    int ptid;
+
+    tid  = pthread_self();      // library tid
+    ptid = syscall(SYS_gettid); 
+
+    printf("I am thread %lu (%i) from process %i\n",tid,ptid,getpid());
+    sleep(1);
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t tid[2];
+    int i,err;
+    
+    // creates a thread given the pthread_t variable as first parameter
+    // thread attributes are default (second parameter is NULL)
+    // example_code is the function the thread has to execute
+    // no function parameters (fourth parameter is NULL)
+    for (i=0;i<2;i++) {
+        if ((err=pthread_create(&tid[i],NULL,example_code,NULL))) {
+            printf("errore create [%i]\n",err);
+            exit(EXIT_FAILURE); }
+    }
+    // waits for threads. Doesn't read return value (second parameter is NULL)
+    for (i=0;i<2;i++) {
+        if ((err=pthread_join(tid[i],NULL))) {
+            printf("Join error [%i]\n",err);
+            exit(EXIT_FAILURE); }
+    }
+    printf("Threads terminated execution successfully\n");
+}
+```
+___
+
+## Mutex
+
+*Necessary libraries*
+
+```cpp
+#include <pthread.h>
+```
+
+*Description*
+> Mutex is used to partially solve the 'race condition' problem regarding threads.
+> You need to declare a mutex global variable, so u can 'lock' and 'unlock' the 
+> critical parts of your functions that could result in a race condition. The lock
+> function lets the first thread execute the following code, and makes the others
+> wait for the first thread to unlock the code. Then the second-arrived thread 
+> can execute the code, and so on. 
+
+*Usage*
+
+```cpp
+//
+// Created by andreixmanu on 06/04/24.
+//
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+#define N_THREADS 5
+
+int x = 0;
+pthread_mutex_t mutex;
+
+void *routine(){
+    for(int i = 0; i < 1000000; i++){
+        // lock the execution to only the going thread
+        pthread_mutex_lock(&mutex);
+        x++;
+        // let the next thread continue the execution
+        pthread_mutex_unlock(&mutex);
+    }
+    return NULL;
+}
+
+
+int main(int argc, char* argv[]){
+    
+    // array of n threads
+    pthread_t threads[N_THREADS];
+    // initialize the mutex variable
+    pthread_mutex_init(&mutex, NULL);
+    
+    // create n threads
+    for(int i = 0; i < N_THREADS; i++){
+        if(pthread_create(&threads[i], NULL, &routine, NULL)) return 1;
+        printf("Thread %d created successfully\n", i);
+    }
+    
+    // what for n threads returns
+    for(int i = 0; i < N_THREADS; i++){
+        if(pthread_join(threads[i], NULL)) return 2;
+        printf("Thread %d finished successfully\n", i);
+    }
+    
+    // destroy the mutex
+    pthread_mutex_destroy(&mutex);
+    printf("x: %d", x);
+
+    return 0;
+}
+```
+___
+
+## semaphores
+
+*Necessary libraries*
+```cpp
+#include <semaphore.h>
+```
+
+*Description*
+
+> Semaphores are similar to mutexes, but they allow multiple n threads
+> to execute the same critical code at the same time. When the 
+> semaphore counter reaches 0, no more threads are allowed to execute
+> the code and have to wait.
+
+*Usage*
+
+```cpp
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <semaphore.h>
+
+#define THREAD_NUM 4
+
+// global semaphore variable
+sem_t semaphore;
+
+void* routine(void* args) {
+    sem_wait(&semaphore);
+    sleep(1);
+    printf("Hello from thread %d\n", *(int*)args);
+    sem_post(&semaphore);
+    free(args);
+}
+
+int main(int argc, char *argv[]) {
+
+    pthread_t th[THREAD_NUM];
+    // initiate the semaphore for 0 other processes, 
+    // starting from the third parameter's value
+    sem_init(&semaphore, 0, 1);
+    int i;
+    for (i = 0; i < THREAD_NUM; i++) {
+        int* a = malloc(sizeof(int));
+        *a = i;
+        if (pthread_create(&th[i], NULL, &routine, a) != 0) {
+            perror("Failed to create thread");
+        }
+    }
+
+    for (i = 0; i < THREAD_NUM; i++) {
+        if (pthread_join(th[i], NULL) != 0) {
+            perror("Failed to join thread");
+        }
+    }
+    sem_destroy(&semaphore);
+    return 0;
+}
+```

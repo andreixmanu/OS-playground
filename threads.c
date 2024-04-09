@@ -2,18 +2,16 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <sys/syscall.h>   /* For SYS_xxx definitions */
+#include <sys/syscall.h>
 
-// codice dei thread. Notare che è una funzione che prende
-// un puntatore e ritorna un puntatore (a void)
-void * codice_thread(void * a) {
+void * example_code(void * a) {
     pthread_t tid;
     int ptid;
 
     tid  = pthread_self();      // library tid
-    ptid = syscall(SYS_gettid); // tid assegnato dal SO (funziona solo in Linux)
+    ptid = syscall(SYS_gettid);
 
-    printf("Sono il thread %lu (%i) del processo %i\n",tid,ptid,getpid());
+    printf("I am thread %lu (%i) from process %i\n",tid,ptid,getpid());
     sleep(1);
     pthread_exit(NULL);
 }
@@ -22,20 +20,20 @@ int main() {
     pthread_t tid[2];
     int i,err;
 
-    // crea i thread (ritorna 0 quando ha successo, vedere il man!)
-    // - gli attributi sono quelli di default (il secondo parametro e' NULL)
-    // - codice_thread è il nome della funzione da eseguire
-    // - non vengono passati parametri (quarto parametro e' NULL)
+    // creates a thread given the pthread_t variable as first parameter
+    // thread attributes are default (second parameter is NULL)
+    // example_code is the function the thread has to execute
+    // no function parameters (fourth parameter is NULL)
     for (i=0;i<2;i++) {
-        if ((err=pthread_create(&tid[i],NULL,codice_thread,NULL))) {
+        if ((err=pthread_create(&tid[i],NULL,example_code,NULL))) {
             printf("errore create [%i]\n",err);
             exit(EXIT_FAILURE); }
     }
-    // attende i thread. Non si legge il valore di ritorno (secondo parametro NULL)
+    // waits for threads. Doesn't read return value (second parameter is NULL)
     for (i=0;i<2;i++) {
         if ((err=pthread_join(tid[i],NULL))) {
-            printf("errore join [%i]\n",err);
+            printf("Join error [%i]\n",err);
             exit(EXIT_FAILURE); }
     }
-    printf("I thread hanno terminato l'esecuzione correttamente\n");
+    printf("Threads terminated execution successfully\n");
 }
